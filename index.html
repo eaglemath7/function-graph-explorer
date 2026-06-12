@@ -100,6 +100,11 @@
 
     .graph-wrap { padding: 14px; }
 
+    .graph-action {
+      width: 100%;
+      margin-top: 12px;
+    }
+
     canvas {
       display: block;
       width: 100%;
@@ -163,7 +168,7 @@
 
     .target-list {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 6px;
       margin-bottom: 14px;
     }
@@ -229,9 +234,15 @@
 
     .constant-row {
       display: grid;
-      grid-template-columns: 72px 1fr;
+      grid-template-columns: 64px minmax(0, 1fr) auto;
       gap: 8px;
       align-items: center;
+    }
+
+    .constant-row .ghost {
+      min-height: 40px;
+      padding: 0 12px;
+      white-space: nowrap;
     }
 
     label {
@@ -285,7 +296,7 @@
 
       .tabs { width: 100%; }
       .tab { flex: 1; min-width: 0; }
-      .target-list { grid-template-columns: repeat(3, 1fr); }
+      .target-list { grid-template-columns: repeat(5, minmax(0, 1fr)); }
       .actions { grid-template-columns: 1fr; }
       canvas { aspect-ratio: 1 / 1; }
     }
@@ -309,6 +320,7 @@
     <section id="direct" class="stage active">
       <div class="graph-wrap">
         <canvas id="directCanvas" aria-label="정비례 그래프"></canvas>
+        <button class="primary graph-action" id="directAnimate" disabled>기본형에서 상수 변화 관찰하기</button>
       </div>
       <aside class="side">
         <div class="stage-title">
@@ -319,14 +331,13 @@
         <p class="mission">그래프 위에 직접 클릭해서 정비례식 위의 점 5개를 찍으세요. 음수 상수일 때 선이 어떻게 뒤집히는지도 관찰합니다.</p>
         <div class="target-list" id="directTargets"></div>
         <div class="actions">
-          <button class="primary" id="directAnimate" disabled>기본형에서 상수 변화 관찰하기</button>
-          <button class="ghost" id="directRandom">랜덤 상수</button>
           <button class="ghost" id="directReset">다시 찍기</button>
         </div>
         <div class="constant-box">
           <div class="constant-row">
             <label for="directA">상수 a</label>
             <input id="directA" type="text" value="-2" inputmode="text" aria-label="정비례 상수 a">
+            <button class="ghost" id="directRandom">랜덤</button>
           </div>
         </div>
         <div class="readout" id="directReadout"></div>
@@ -336,6 +347,7 @@
     <section id="inverse" class="stage">
       <div class="graph-wrap">
         <canvas id="inverseCanvas" aria-label="반비례 그래프"></canvas>
+        <button class="primary graph-action" id="inverseAnimate" disabled>기본형에서 상수 변화 관찰하기</button>
       </div>
       <aside class="side">
         <div class="stage-title">
@@ -346,8 +358,6 @@
         <p class="mission">x값을 양수 쪽 또는 음수 쪽 한 가지로 고정해, 정수 좌표 점들을 직접 찍어 반비례 그래프의 한쪽 모양을 먼저 확인하세요.</p>
         <div class="target-list" id="inverseTargets"></div>
         <div class="actions">
-          <button class="primary" id="inverseAnimate" disabled>기본형에서 상수 변화 관찰하기</button>
-          <button class="ghost" id="inverseRandom">랜덤 상수</button>
           <button class="ghost" id="inverseSide">양수 x 보기</button>
           <button class="ghost" id="inverseReset">다시 찍기</button>
         </div>
@@ -355,6 +365,7 @@
           <div class="constant-row">
             <label for="inverseA">상수 a</label>
             <input id="inverseA" type="text" value="-6" inputmode="text" aria-label="반비례 상수 a">
+            <button class="ghost" id="inverseRandom">랜덤</button>
           </div>
         </div>
         <div class="readout" id="inverseReadout"></div>
@@ -364,6 +375,7 @@
     <section id="linear" class="stage">
       <div class="graph-wrap">
         <canvas id="linearCanvas" aria-label="일차함수 평행이동 그래프"></canvas>
+        <button class="primary graph-action" id="linearAnimate" disabled>기본형에서 평행이동 관찰하기</button>
       </div>
       <aside class="side">
         <div class="stage-title">
@@ -371,14 +383,17 @@
           <span class="badge" id="linearBadge">0 / 5</span>
         </div>
         <div class="equation" id="linearEquation"></div>
-        <p class="mission">그래프 위에 직접 클릭해서 목표 식을 지나는 점 5개를 찍으세요. 정답 점 가까이를 누르면 점이 고정됩니다.</p>
+        <p class="mission">주어진 x값을 보고 해당하는 좌표점을 클릭하세요.</p>
         <div class="target-list" id="linearTargets"></div>
         <div class="actions">
-          <button class="primary" id="linearAnimate" disabled>기본형에서 평행이동 관찰하기</button>
-          <button class="ghost" id="linearRandom">랜덤 상수</button>
           <button class="ghost" id="linearReset">다시 찍기</button>
         </div>
         <div class="constant-box">
+          <div class="constant-row">
+            <label for="linearA">상수 a</label>
+            <input id="linearA" type="text" value="2" inputmode="text" aria-label="일차함수 상수 a">
+            <button class="ghost" id="linearRandom">랜덤</button>
+          </div>
           <div class="constant-row">
             <label for="linearB">상수 b</label>
             <input id="linearB" type="text" value="3" inputmode="text" aria-label="일차함수 상수 b">
@@ -391,6 +406,7 @@
     <section id="quadratic" class="stage">
       <div class="graph-wrap">
         <canvas id="quadraticCanvas" aria-label="이차함수 평행이동 그래프"></canvas>
+        <button class="primary graph-action" id="quadraticAnimate" disabled>기본형에서 평행이동 관찰하기</button>
       </div>
       <aside class="side">
         <div class="stage-title">
@@ -401,18 +417,17 @@
         <p class="mission">그래프 위에 직접 클릭해서 목표 포물선 위의 점 5개를 찍으세요. 꼭짓점도 직접 확인합니다.</p>
         <div class="target-list" id="quadraticTargets"></div>
         <div class="actions">
-          <button class="primary" id="quadraticAnimate" disabled>기본형에서 단계별 이동 관찰하기</button>
-          <button class="ghost" id="quadraticRandom">랜덤 상수</button>
           <button class="ghost" id="quadraticReset">다시 찍기</button>
         </div>
         <div class="constant-box">
           <div class="constant-row">
-            <label for="quadraticH">상수 h</label>
-            <input id="quadraticH" type="text" value="2" inputmode="text" aria-label="이차함수 x축 이동 h">
+            <label for="quadraticH">상수 p</label>
+            <input id="quadraticH" type="text" value="2" inputmode="text" aria-label="이차함수 x축 이동 p">
+            <button class="ghost" id="quadraticRandom">랜덤</button>
           </div>
           <div class="constant-row">
-            <label for="quadraticK">상수 k</label>
-            <input id="quadraticK" type="text" value="1" inputmode="text" aria-label="이차함수 y축 이동 k">
+            <label for="quadraticK">상수 q</label>
+            <input id="quadraticK" type="text" value="1" inputmode="text" aria-label="이차함수 y축 이동 q">
           </div>
         </div>
         <div class="readout" id="quadraticReadout"></div>
@@ -421,10 +436,10 @@
   </main>
 
   <script>
-    const linearXs = [-1, 0, 1, 2, 3];
     const quadraticDeltas = [-2, -1, 0, 1, 2];
-    const inverseAllowedAbs = [1, 2, 3, 4, 6, 8, 12];
+    const inverseAllowedAbs = [1, 2, 3, 4, 5, 6, 8];
     const tolerance = 0.48;
+    const defaultMessage = "주어진 x값을 보고 해당하는 좌표점을 클릭하세요.";
 
     const state = {
       direct: {
@@ -433,7 +448,7 @@
         missionDone: false,
         progress: 0,
         animating: false,
-        message: "목표 점 가까이를 클릭하세요."
+        message: defaultMessage
       },
       inverse: {
         a: -6,
@@ -442,15 +457,16 @@
         missionDone: false,
         progress: 0,
         animating: false,
-        message: "목표 점 가까이를 클릭하세요."
+        message: defaultMessage
       },
       linear: {
+        a: 2,
         b: 3,
         plotted: new Set(),
         missionDone: false,
         progress: 0,
         animating: false,
-        message: "목표 점 가까이를 클릭하세요."
+        message: defaultMessage
       },
       quadratic: {
         h: 2,
@@ -460,7 +476,7 @@
         stepX: 0,
         stepY: 0,
         animating: false,
-        message: "목표 점 가까이를 클릭하세요."
+        message: defaultMessage
       }
     };
 
@@ -492,6 +508,7 @@
       quadraticReset: document.getElementById("quadraticReset"),
       directA: document.getElementById("directA"),
       inverseA: document.getElementById("inverseA"),
+      linearA: document.getElementById("linearA"),
       linearB: document.getElementById("linearB"),
       quadraticH: document.getElementById("quadraticH"),
       quadraticK: document.getElementById("quadraticK"),
@@ -624,8 +641,9 @@
     }
 
     function linearEquationText() {
-      const b = state.linear.b;
-      return b === 0 ? "y = 2x" : `y = 2x ${signedSpaced(b)}`;
+      const { a, b } = state.linear;
+      const ax = a === 1 ? "x" : a === -1 ? "-x" : `${formatNumber(a)}x`;
+      return b === 0 ? `y = ${ax}` : `y = ${ax} ${signedSpaced(b)}`;
     }
 
     function quadraticEquationText() {
@@ -636,7 +654,14 @@
     }
 
     function linearTargets() {
-      return linearXs.map(x => ({ x, y: niceNumber(2 * x + state.linear.b) }));
+      const { a, b } = state.linear;
+      const candidates = [];
+      for (let x = -8; x <= 8; x++) {
+        const y = niceNumber(a * x + b);
+        if (Number.isInteger(y) && y >= -12 && y <= 12) candidates.push({ x, y });
+      }
+      candidates.sort((left, right) => Math.abs(left.x) - Math.abs(right.x) || left.x - right.x);
+      return candidates.slice(0, 5).sort((left, right) => left.x - right.x);
     }
 
     function directXsForA(a) {
@@ -681,7 +706,7 @@
 
     function makeSpace(width, height) {
       const pad = Math.min(width, height) * .09;
-      const xmin = -12, xmax = 12, ymin = -14, ymax = 14;
+      const xmin = -8, xmax = 8, ymin = -12, ymax = 12;
       const sx = (width - pad * 2) / (xmax - xmin);
       const sy = (height - pad * 2) / (ymax - ymin);
       return {
@@ -826,7 +851,7 @@
       const targets = linearTargets();
       ctx.save();
       ctx.globalAlpha = alpha;
-      drawCurve(ctx, space, x => 2 * x + state.linear.b, "#059669", 4);
+      drawCurve(ctx, space, x => state.linear.a * x + state.linear.b, "#059669", 4);
       targets.forEach((point, idx) => {
         if (state.linear.plotted.has(idx)) drawPoint(ctx, space, point, "#059669", `(${formatNumber(point.x)}, ${formatNumber(point.y)})`);
       });
@@ -941,12 +966,12 @@
 
       if (s.progress > 0 && s.progress < 1) {
         const offset = s.b * s.progress;
-        drawCurve(ctx, space, x => 2 * x, "#94a3b8", 3, true);
-        drawCurve(ctx, space, x => 2 * x + offset, "#2563eb", 4);
-        linearXs.forEach(x => drawPoint(ctx, space, { x, y: 2 * x + offset }, "#2563eb"));
-        drawMovingLabel(ctx, space, `이동 중: y = 2x ${signedSpaced(offset)}`);
+        drawCurve(ctx, space, x => s.a * x, "#94a3b8", 3, true);
+        drawCurve(ctx, space, x => s.a * x + offset, "#2563eb", 4);
+        linearTargets().forEach(point => drawPoint(ctx, space, { x: point.x, y: s.a * point.x + offset }, "#2563eb"));
+        drawMovingLabel(ctx, space, `이동 중: y = ${s.a === 1 ? "x" : s.a === -1 ? "-x" : `${formatNumber(s.a)}x`} ${signedSpaced(offset)}`);
       } else if (s.progress === 1) {
-        drawCurve(ctx, space, x => 2 * x, "#94a3b8", 3, true, .65);
+        drawCurve(ctx, space, x => s.a * x, "#94a3b8", 3, true, .65);
         drawMovingLabel(ctx, space, `완성: ${linearEquationText()}`, "#065f46");
       } else {
         drawMovingLabel(ctx, space, "학생이 그린 그래프가 먼저 완성되었습니다.", "#065f46");
@@ -1056,7 +1081,7 @@
         const a = niceNumber(1 + (s.a - 1) * s.progress);
         el.inverseReadout.innerHTML = `<span>${s.progress === 0 ? "학생 반비례 그래프 완성!" : `현재 상수 a: ${formatNumber(a)}`}</span><small>${s.side === "positive" ? "양수 x쪽" : "음수 x쪽"} 가지를 먼저 확인한 뒤, 전체 반비례 그래프 모양을 관찰합니다.</small>`;
       } else {
-        el.inverseReadout.innerHTML = `<span>${s.message}</span><small>지금은 ${s.side === "positive" ? "양수 x값" : "음수 x값"}만 찍습니다. 반비례 상수는 ±1, ±2, ±3, ±4, ±6, ±8, ±12 중에서 사용합니다.</small>`;
+        el.inverseReadout.innerHTML = `<span>${s.message}</span><small>지금은 ${s.side === "positive" ? "양수 x값" : "음수 x값"}만 찍습니다. 반비례 상수는 ±1, ±2, ±3, ±4, ±5, ±6, ±8 중에서 사용합니다.</small>`;
       }
       drawInverse();
     }
@@ -1066,13 +1091,14 @@
       el.linearBadge.textContent = `${s.plotted.size} / ${targetCount("linear")}`;
       el.linearAnimate.disabled = !s.missionDone || s.animating;
       el.linearEquation.textContent = linearEquationText();
+      el.linearA.value = formatNumber(s.a);
       el.linearB.value = formatNumber(s.b);
       refreshTargetList("linear");
       const move = niceNumber(s.b * s.progress);
       if (s.missionDone) {
-        el.linearReadout.innerHTML = `<span>${s.progress === 0 ? "학생 그래프 완성!" : `현재 이동량: ${signed(move)}`}</span><small>이제 기본형 y = 2x가 y축 방향으로 ${signed(state.linear.b)}만큼 이동해 같은 그래프가 됩니다.</small>`;
+        el.linearReadout.innerHTML = `<span>${s.progress === 0 ? "학생 그래프 완성!" : `현재 이동량: ${signed(move)}`}</span><small>기본형 y = ax에서 b만큼 위아래로 평행이동해 같은 그래프가 됩니다.</small>`;
       } else {
-        el.linearReadout.innerHTML = `<span>${s.message}</span><small>점 좌표가 정수로 나오도록 일차함수의 상수 b는 정수만 사용합니다.</small>`;
+        el.linearReadout.innerHTML = `<span>${s.message}</span><small></small>`;
       }
       drawLinear();
     }
@@ -1090,7 +1116,7 @@
       if (s.missionDone) {
         el.quadraticReadout.innerHTML = `<span>${s.stepX === 0 && s.stepY === 0 ? "학생 포물선 완성!" : `꼭짓점: (${formatNumber(vx)}, ${formatNumber(vy)})`}</span><small>(0, 0) → (${formatNumber(s.h)}, 0) → (${formatNumber(s.h)}, ${formatNumber(s.k)}) 순서로 이동합니다.</small>`;
       } else {
-        el.quadraticReadout.innerHTML = `<span>${s.message}</span><small>꼭짓점과 목표 점이 정수 좌표가 되도록 h, k는 정수만 사용합니다.</small>`;
+        el.quadraticReadout.innerHTML = `<span>${s.message}</span><small></small>`;
       }
       drawQuadratic();
     }
@@ -1233,7 +1259,7 @@
       s.plotted.clear();
       s.missionDone = false;
       s.animating = false;
-      s.message = "목표 점 가까이를 클릭하세요.";
+      s.message = defaultMessage;
       if (kind === "direct" || kind === "inverse" || kind === "linear") s.progress = 0;
       if (kind === "quadratic") {
         s.stepX = 0;
@@ -1257,7 +1283,7 @@
     function applyInverseConstant() {
       const value = parseConstant(el.inverseA.value);
       if (value === null || !isAllowedInverseConstant(value)) {
-        state.inverse.message = "반비례 상수 a는 ±1, ±2, ±3, ±4, ±6, ±8, ±12 중 하나만 입력하세요.";
+        state.inverse.message = "반비례 상수 a는 ±1, ±2, ±3, ±4, ±5, ±6, ±8 중 하나만 입력하세요.";
       } else {
         state.inverse.a = niceNumber(value);
         reset("inverse");
@@ -1267,11 +1293,22 @@
     }
 
     function applyLinearConstant() {
-      const value = parseConstant(el.linearB.value);
-      if (value === null || !isIntegerInRange(value, true)) {
-        state.linear.message = "상수 b는 절대값 5 이하의 정수만 입력하세요. 그래야 목표 점이 정수 좌표로 나옵니다.";
+      const a = parseConstant(el.linearA.value);
+      const b = parseConstant(el.linearB.value);
+      const oldA = state.linear.a;
+      const oldB = state.linear.b;
+      if (a === null || b === null || !isIntegerInRange(a, false) || !Number.isInteger(niceNumber(b)) || Math.abs(niceNumber(b)) > 4) {
+        state.linear.message = "일차함수의 a는 0이 아닌 정수, b는 -4부터 4까지의 정수로 입력하세요.";
       } else {
-        state.linear.b = niceNumber(value);
+        state.linear.a = niceNumber(a);
+        state.linear.b = niceNumber(b);
+        if (linearTargets().length < 5) {
+          state.linear.a = oldA;
+          state.linear.b = oldB;
+          state.linear.message = "현재 눈금 안에서 찍을 수 있는 정수 좌표가 부족합니다. a 또는 b를 조금 줄여주세요.";
+          refreshLinearUi();
+          return;
+        }
         reset("linear");
         return;
       }
@@ -1281,8 +1318,8 @@
     function applyQuadraticConstants() {
       const h = parseConstant(el.quadraticH.value);
       const k = parseConstant(el.quadraticK.value);
-      if (h === null || k === null || !isIntegerInRange(h, true) || !isIntegerInRange(k, true)) {
-        state.quadratic.message = "h와 k는 절대값 5 이하의 정수만 입력하세요. 그래야 꼭짓점과 목표 점이 정수 좌표로 나옵니다.";
+      if (h === null || k === null || !isIntegerInRange(h, true) || !Number.isInteger(niceNumber(k)) || Math.abs(niceNumber(k)) > 4) {
+        state.quadratic.message = "p는 -5부터 5까지, q는 -4부터 4까지의 정수로 입력하세요.";
       } else {
         state.quadratic.h = niceNumber(h);
         state.quadratic.k = niceNumber(k);
@@ -1293,7 +1330,8 @@
     }
 
     function randomizeLinear() {
-      state.linear.b = randomIntegerConstant();
+      state.linear.a = randomNonzeroIntegerConstant();
+      state.linear.b = Math.floor(Math.random() * 9) - 4;
       reset("linear");
     }
 
@@ -1314,7 +1352,7 @@
 
     function randomizeQuadratic() {
       state.quadratic.h = randomIntegerConstant();
-      state.quadratic.k = randomIntegerConstant();
+      state.quadratic.k = Math.floor(Math.random() * 9) - 4;
       reset("quadratic");
     }
 
@@ -1354,9 +1392,11 @@
     el.inverseA.addEventListener("keydown", event => {
       if (event.key === "Enter") applyInverseConstant();
     });
-    el.linearB.addEventListener("change", applyLinearConstant);
-    el.linearB.addEventListener("keydown", event => {
-      if (event.key === "Enter") applyLinearConstant();
+    [el.linearA, el.linearB].forEach(input => {
+      input.addEventListener("change", applyLinearConstant);
+      input.addEventListener("keydown", event => {
+        if (event.key === "Enter") applyLinearConstant();
+      });
     });
     [el.quadraticH, el.quadraticK].forEach(input => {
       input.addEventListener("change", applyQuadraticConstants);
