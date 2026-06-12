@@ -1,0 +1,1381 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>평행이동 관찰하기</title>
+  <style>
+    :root {
+      --ink: #1f2937;
+      --muted: #64748b;
+      --line: #d7dee8;
+      --panel: #ffffff;
+      --soft: #f6f8fb;
+      --accent: #0f766e;
+      --blue: #2563eb;
+      --green: #059669;
+      --red: #dc2626;
+      --amber: #b45309;
+      --shadow: 0 14px 40px rgba(15, 23, 42, .11);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: linear-gradient(180deg, #eef6f4 0%, #f8fafc 42%, #ffffff 100%);
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .tabs {
+      display: inline-flex;
+      gap: 6px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.74);
+    }
+
+    .tab {
+      min-width: 120px;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .tab[aria-selected="true"] {
+      color: #fff;
+      background: var(--accent);
+    }
+
+    .stage {
+      display: none;
+      grid-template-columns: minmax(0, 1fr) 350px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stage.active { display: grid; }
+
+    .graph-wrap,
+    .side {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .graph-wrap { padding: 14px; }
+
+    canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 11;
+      border-radius: 6px;
+      background: #fff;
+      cursor: crosshair;
+      touch-action: manipulation;
+    }
+
+    .side { padding: 16px; }
+
+    .stage-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 62px;
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--blue);
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .equation {
+      display: grid;
+      place-items: center;
+      min-height: 56px;
+      margin: 12px 0;
+      border-radius: 8px;
+      background: var(--soft);
+      color: #0f172a;
+      font-size: 23px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .mission {
+      margin: 12px 0 14px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .target-list {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .target {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .target.done {
+      border-color: rgba(5,150,105,.45);
+      color: #065f46;
+      background: #ecfdf5;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .primary,
+    .ghost {
+      min-height: 44px;
+      border-radius: 8px;
+      border: 0;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .primary {
+      color: #fff;
+      background: var(--accent);
+      grid-column: 1 / -1;
+    }
+
+    .primary:disabled {
+      cursor: not-allowed;
+      background: #9ca3af;
+    }
+
+    .ghost {
+      color: var(--ink);
+      background: #edf2f7;
+    }
+
+    .constant-box {
+      display: grid;
+      gap: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .constant-row {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      min-height: 40px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      font: inherit;
+      font-weight: 800;
+    }
+
+    .readout {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #fff7ed;
+      color: #7c2d12;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .readout small {
+      color: #9a3412;
+      font-weight: 700;
+    }
+
+    @media (max-width: 900px) {
+      header {
+        display: grid;
+        align-items: start;
+      }
+
+      .stage.active { grid-template-columns: 1fr; }
+      .side { order: -1; }
+    }
+
+    @media (max-width: 560px) {
+      main {
+        width: min(100vw - 20px, 1180px);
+        padding-top: 18px;
+      }
+
+      .tabs { width: 100%; }
+      .tab { flex: 1; min-width: 0; }
+      .target-list { grid-template-columns: repeat(3, 1fr); }
+      .actions { grid-template-columns: 1fr; }
+      canvas { aspect-ratio: 1 / 1; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>평행이동 관찰하기</h1>
+        <p class="subtitle">학생이 직접 점을 찍어 그래프를 완성한 뒤, 기본형 그래프가 그 그래프로 이동하는 과정을 봅니다.</p>
+      </div>
+      <nav class="tabs" aria-label="함수 선택">
+        <button class="tab" data-tab="direct" aria-selected="true">정비례</button>
+        <button class="tab" data-tab="inverse" aria-selected="false">반비례</button>
+        <button class="tab" data-tab="linear" aria-selected="false">일차함수</button>
+        <button class="tab" data-tab="quadratic" aria-selected="false">이차함수</button>
+      </nav>
+    </header>
+
+    <section id="direct" class="stage active">
+      <div class="graph-wrap">
+        <canvas id="directCanvas" aria-label="정비례 그래프"></canvas>
+      </div>
+      <aside class="side">
+        <div class="stage-title">
+          <h2>정비례</h2>
+          <span class="badge" id="directBadge">0 / 5</span>
+        </div>
+        <div class="equation" id="directEquation"></div>
+        <p class="mission">그래프 위에 직접 클릭해서 정비례식 위의 점 5개를 찍으세요. 음수 상수일 때 선이 어떻게 뒤집히는지도 관찰합니다.</p>
+        <div class="target-list" id="directTargets"></div>
+        <div class="actions">
+          <button class="primary" id="directAnimate" disabled>기본형에서 상수 변화 관찰하기</button>
+          <button class="ghost" id="directRandom">랜덤 상수</button>
+          <button class="ghost" id="directReset">다시 찍기</button>
+        </div>
+        <div class="constant-box">
+          <div class="constant-row">
+            <label for="directA">상수 a</label>
+            <input id="directA" type="text" value="-2" inputmode="text" aria-label="정비례 상수 a">
+          </div>
+        </div>
+        <div class="readout" id="directReadout"></div>
+      </aside>
+    </section>
+
+    <section id="inverse" class="stage">
+      <div class="graph-wrap">
+        <canvas id="inverseCanvas" aria-label="반비례 그래프"></canvas>
+      </div>
+      <aside class="side">
+        <div class="stage-title">
+          <h2>반비례</h2>
+          <span class="badge" id="inverseBadge">0 / 5</span>
+        </div>
+        <div class="equation" id="inverseEquation"></div>
+        <p class="mission">x값을 양수 쪽 또는 음수 쪽 한 가지로 고정해, 정수 좌표 점들을 직접 찍어 반비례 그래프의 한쪽 모양을 먼저 확인하세요.</p>
+        <div class="target-list" id="inverseTargets"></div>
+        <div class="actions">
+          <button class="primary" id="inverseAnimate" disabled>기본형에서 상수 변화 관찰하기</button>
+          <button class="ghost" id="inverseRandom">랜덤 상수</button>
+          <button class="ghost" id="inverseSide">양수 x 보기</button>
+          <button class="ghost" id="inverseReset">다시 찍기</button>
+        </div>
+        <div class="constant-box">
+          <div class="constant-row">
+            <label for="inverseA">상수 a</label>
+            <input id="inverseA" type="text" value="-6" inputmode="text" aria-label="반비례 상수 a">
+          </div>
+        </div>
+        <div class="readout" id="inverseReadout"></div>
+      </aside>
+    </section>
+
+    <section id="linear" class="stage">
+      <div class="graph-wrap">
+        <canvas id="linearCanvas" aria-label="일차함수 평행이동 그래프"></canvas>
+      </div>
+      <aside class="side">
+        <div class="stage-title">
+          <h2>일차함수</h2>
+          <span class="badge" id="linearBadge">0 / 5</span>
+        </div>
+        <div class="equation" id="linearEquation"></div>
+        <p class="mission">그래프 위에 직접 클릭해서 목표 식을 지나는 점 5개를 찍으세요. 정답 점 가까이를 누르면 점이 고정됩니다.</p>
+        <div class="target-list" id="linearTargets"></div>
+        <div class="actions">
+          <button class="primary" id="linearAnimate" disabled>기본형에서 평행이동 관찰하기</button>
+          <button class="ghost" id="linearRandom">랜덤 상수</button>
+          <button class="ghost" id="linearReset">다시 찍기</button>
+        </div>
+        <div class="constant-box">
+          <div class="constant-row">
+            <label for="linearB">상수 b</label>
+            <input id="linearB" type="text" value="3" inputmode="text" aria-label="일차함수 상수 b">
+          </div>
+        </div>
+        <div class="readout" id="linearReadout"></div>
+      </aside>
+    </section>
+
+    <section id="quadratic" class="stage">
+      <div class="graph-wrap">
+        <canvas id="quadraticCanvas" aria-label="이차함수 평행이동 그래프"></canvas>
+      </div>
+      <aside class="side">
+        <div class="stage-title">
+          <h2>이차함수</h2>
+          <span class="badge" id="quadraticBadge">0 / 5</span>
+        </div>
+        <div class="equation" id="quadraticEquation"></div>
+        <p class="mission">그래프 위에 직접 클릭해서 목표 포물선 위의 점 5개를 찍으세요. 꼭짓점도 직접 확인합니다.</p>
+        <div class="target-list" id="quadraticTargets"></div>
+        <div class="actions">
+          <button class="primary" id="quadraticAnimate" disabled>기본형에서 단계별 이동 관찰하기</button>
+          <button class="ghost" id="quadraticRandom">랜덤 상수</button>
+          <button class="ghost" id="quadraticReset">다시 찍기</button>
+        </div>
+        <div class="constant-box">
+          <div class="constant-row">
+            <label for="quadraticH">상수 h</label>
+            <input id="quadraticH" type="text" value="2" inputmode="text" aria-label="이차함수 x축 이동 h">
+          </div>
+          <div class="constant-row">
+            <label for="quadraticK">상수 k</label>
+            <input id="quadraticK" type="text" value="1" inputmode="text" aria-label="이차함수 y축 이동 k">
+          </div>
+        </div>
+        <div class="readout" id="quadraticReadout"></div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const linearXs = [-1, 0, 1, 2, 3];
+    const quadraticDeltas = [-2, -1, 0, 1, 2];
+    const inverseAllowedAbs = [1, 2, 3, 4, 6, 8, 12];
+    const tolerance = 0.48;
+
+    const state = {
+      direct: {
+        a: -2,
+        plotted: new Set(),
+        missionDone: false,
+        progress: 0,
+        animating: false,
+        message: "목표 점 가까이를 클릭하세요."
+      },
+      inverse: {
+        a: -6,
+        side: "positive",
+        plotted: new Set(),
+        missionDone: false,
+        progress: 0,
+        animating: false,
+        message: "목표 점 가까이를 클릭하세요."
+      },
+      linear: {
+        b: 3,
+        plotted: new Set(),
+        missionDone: false,
+        progress: 0,
+        animating: false,
+        message: "목표 점 가까이를 클릭하세요."
+      },
+      quadratic: {
+        h: 2,
+        k: 1,
+        plotted: new Set(),
+        missionDone: false,
+        stepX: 0,
+        stepY: 0,
+        animating: false,
+        message: "목표 점 가까이를 클릭하세요."
+      }
+    };
+
+    const el = {
+      directCanvas: document.getElementById("directCanvas"),
+      inverseCanvas: document.getElementById("inverseCanvas"),
+      linearCanvas: document.getElementById("linearCanvas"),
+      quadraticCanvas: document.getElementById("quadraticCanvas"),
+      directTargets: document.getElementById("directTargets"),
+      inverseTargets: document.getElementById("inverseTargets"),
+      linearTargets: document.getElementById("linearTargets"),
+      quadraticTargets: document.getElementById("quadraticTargets"),
+      directBadge: document.getElementById("directBadge"),
+      inverseBadge: document.getElementById("inverseBadge"),
+      linearBadge: document.getElementById("linearBadge"),
+      quadraticBadge: document.getElementById("quadraticBadge"),
+      directAnimate: document.getElementById("directAnimate"),
+      inverseAnimate: document.getElementById("inverseAnimate"),
+      linearAnimate: document.getElementById("linearAnimate"),
+      quadraticAnimate: document.getElementById("quadraticAnimate"),
+      directRandom: document.getElementById("directRandom"),
+      inverseRandom: document.getElementById("inverseRandom"),
+      inverseSide: document.getElementById("inverseSide"),
+      linearRandom: document.getElementById("linearRandom"),
+      quadraticRandom: document.getElementById("quadraticRandom"),
+      directReset: document.getElementById("directReset"),
+      inverseReset: document.getElementById("inverseReset"),
+      linearReset: document.getElementById("linearReset"),
+      quadraticReset: document.getElementById("quadraticReset"),
+      directA: document.getElementById("directA"),
+      inverseA: document.getElementById("inverseA"),
+      linearB: document.getElementById("linearB"),
+      quadraticH: document.getElementById("quadraticH"),
+      quadraticK: document.getElementById("quadraticK"),
+      directEquation: document.getElementById("directEquation"),
+      inverseEquation: document.getElementById("inverseEquation"),
+      linearEquation: document.getElementById("linearEquation"),
+      quadraticEquation: document.getElementById("quadraticEquation"),
+      directReadout: document.getElementById("directReadout"),
+      inverseReadout: document.getElementById("inverseReadout"),
+      linearReadout: document.getElementById("linearReadout"),
+      quadraticReadout: document.getElementById("quadraticReadout")
+    };
+
+    function gcd(a, b) {
+      a = Math.abs(a);
+      b = Math.abs(b);
+      while (b) [a, b] = [b, a % b];
+      return a || 1;
+    }
+
+    function niceNumber(value) {
+      const rounded = Math.round(value * 1000) / 1000;
+      return Object.is(rounded, -0) ? 0 : rounded;
+    }
+
+    function formatNumber(value) {
+      value = niceNumber(value);
+      for (const den of [2, 3, 4]) {
+        const num = Math.round(value * den);
+        if (Math.abs(value - num / den) < 1e-9 && num % den !== 0) {
+          const d = gcd(num, den);
+          return `${num / d}/${den / d}`;
+        }
+      }
+      return String(value);
+    }
+
+    function signed(value) {
+      value = niceNumber(value);
+      return value > 0 ? `+${formatNumber(value)}` : formatNumber(value);
+    }
+
+    function signedSpaced(value) {
+      value = niceNumber(value);
+      if (value > 0) return `+ ${formatNumber(value)}`;
+      if (value < 0) return `- ${formatNumber(Math.abs(value))}`;
+      return "+ 0";
+    }
+
+    function parseConstant(raw) {
+      const text = raw.trim().replace(/\s/g, "");
+      if (!text) return null;
+      if (text.includes("/")) {
+        const parts = text.split("/");
+        if (parts.length !== 2) return null;
+        const num = Number(parts[0]);
+        const den = Number(parts[1]);
+        if (!Number.isFinite(num) || !Number.isFinite(den) || den === 0) return null;
+        return num / den;
+      }
+      const value = Number(text);
+      return Number.isFinite(value) ? value : null;
+    }
+
+    function rationalInfo(value) {
+      value = niceNumber(value);
+      for (const den of [1, 2, 3, 4]) {
+        const num = Math.round(value * den);
+        if (Math.abs(value - num / den) < 1e-9) {
+          const d = gcd(num, den);
+          return { num: num / d, den: den / d };
+        }
+      }
+      return null;
+    }
+
+    function isSmallNiceRational(value, allowZero = true) {
+      const info = rationalInfo(value);
+      if (!info) return false;
+      if (!allowZero && info.num === 0) return false;
+      return Math.abs(info.num) <= 5 && info.den <= 4;
+    }
+
+    function isIntegerInRange(value, allowZero = true) {
+      value = niceNumber(value);
+      if (!Number.isInteger(value)) return false;
+      if (!allowZero && value === 0) return false;
+      return Math.abs(value) <= 5;
+    }
+
+    function isAllowedInverseConstant(value) {
+      value = niceNumber(value);
+      return Number.isInteger(value) && inverseAllowedAbs.includes(Math.abs(value));
+    }
+
+    function randomDirectConstant() {
+      const den = [1, 2, 3, 4][Math.floor(Math.random() * 4)];
+      let num = 0;
+      while (num === 0) num = Math.floor(Math.random() * 11) - 5;
+      return niceNumber(num / den);
+    }
+
+    function randomIntegerConstant() {
+      return Math.floor(Math.random() * 11) - 5;
+    }
+
+    function randomNonzeroIntegerConstant() {
+      let value = 0;
+      while (value === 0) value = randomIntegerConstant();
+      return value;
+    }
+
+    function randomInverseConstant() {
+      const abs = inverseAllowedAbs[Math.floor(Math.random() * inverseAllowedAbs.length)];
+      return Math.random() < .5 ? -abs : abs;
+    }
+
+    function directEquationText() {
+      const a = state.direct.a;
+      if (a === 1) return "y = x";
+      if (a === -1) return "y = -x";
+      return `y = ${formatNumber(a)}x`;
+    }
+
+    function inverseEquationText() {
+      const a = state.inverse.a;
+      if (a === 1) return "y = 1/x";
+      if (a === -1) return "y = -1/x";
+      return `y = ${formatNumber(a)}/x`;
+    }
+
+    function linearEquationText() {
+      const b = state.linear.b;
+      return b === 0 ? "y = 2x" : `y = 2x ${signedSpaced(b)}`;
+    }
+
+    function quadraticEquationText() {
+      const { h, k } = state.quadratic;
+      const inside = h === 0 ? "x" : `x ${signedSpaced(-h)}`;
+      const outside = k === 0 ? "" : ` ${signedSpaced(k)}`;
+      return `y = (${inside})²${outside}`;
+    }
+
+    function linearTargets() {
+      return linearXs.map(x => ({ x, y: niceNumber(2 * x + state.linear.b) }));
+    }
+
+    function directXsForA(a) {
+      const info = rationalInfo(a) || { den: 1 };
+      const q = info.den;
+      return [-2 * q, -q, 0, q, 2 * q];
+    }
+
+    function directTargets() {
+      return directXsForA(state.direct.a).map(x => ({ x, y: niceNumber(state.direct.a * x) }));
+    }
+
+    function inverseTargets() {
+      const a = state.inverse.a;
+      const absA = Math.abs(a);
+      const divisors = [];
+      for (let d = 1; d <= absA; d++) {
+        if (absA % d === 0) divisors.push(d);
+      }
+      const sign = state.inverse.side === "positive" ? 1 : -1;
+      const xs = divisors.slice(0, 5).map(d => d * sign);
+      return xs.map(x => ({ x, y: niceNumber(a / x) }));
+    }
+
+    function quadraticTargets() {
+      const { h, k } = state.quadratic;
+      return quadraticDeltas.map(dx => {
+        const x = niceNumber(h + dx);
+        return { x, y: niceNumber(dx * dx + k) };
+      });
+    }
+
+    function setupCanvas(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.round(rect.width * ratio);
+      canvas.height = Math.round(rect.height * ratio);
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return { ctx, width: rect.width, height: rect.height };
+    }
+
+    function makeSpace(width, height) {
+      const pad = Math.min(width, height) * .09;
+      const xmin = -12, xmax = 12, ymin = -14, ymax = 14;
+      const sx = (width - pad * 2) / (xmax - xmin);
+      const sy = (height - pad * 2) / (ymax - ymin);
+      return {
+        xmin, xmax, ymin, ymax,
+        toX: x => pad + (x - xmin) * sx,
+        toY: y => height - pad - (y - ymin) * sy,
+        fromX: px => xmin + (px - pad) / sx,
+        fromY: py => ymin + (height - pad - py) / sy
+      };
+    }
+
+    function canvasSpace(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      return makeSpace(rect.width, rect.height);
+    }
+
+    function pointerToGraph(canvas, event) {
+      const rect = canvas.getBoundingClientRect();
+      const space = canvasSpace(canvas);
+      return {
+        x: space.fromX(event.clientX - rect.left),
+        y: space.fromY(event.clientY - rect.top)
+      };
+    }
+
+    function drawGrid(ctx, space, width, height) {
+      ctx.clearRect(0, 0, width, height);
+      ctx.lineWidth = 1;
+      ctx.font = "12px Segoe UI, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      for (let x = space.xmin; x <= space.xmax; x++) {
+        ctx.strokeStyle = x === 0 ? "#334155" : "#e5e9f0";
+        ctx.beginPath();
+        ctx.moveTo(space.toX(x), space.toY(space.ymin));
+        ctx.lineTo(space.toX(x), space.toY(space.ymax));
+        ctx.stroke();
+        if (x !== 0) {
+          ctx.fillStyle = "#94a3b8";
+          ctx.fillText(x, space.toX(x), space.toY(0) + 18);
+        }
+      }
+
+      for (let y = space.ymin; y <= space.ymax; y++) {
+        ctx.strokeStyle = y === 0 ? "#334155" : "#e5e9f0";
+        ctx.beginPath();
+        ctx.moveTo(space.toX(space.xmin), space.toY(y));
+        ctx.lineTo(space.toX(space.xmax), space.toY(y));
+        ctx.stroke();
+        if (y !== 0) {
+          ctx.fillStyle = "#94a3b8";
+          ctx.textAlign = "right";
+          ctx.fillText(y, space.toX(0) - 8, space.toY(y));
+          ctx.textAlign = "center";
+        }
+      }
+
+      ctx.fillStyle = "#334155";
+      ctx.font = "700 13px Segoe UI, sans-serif";
+      ctx.fillText("x", space.toX(space.xmax) - 8, space.toY(0) - 14);
+      ctx.fillText("y", space.toX(0) + 14, space.toY(space.ymax) + 8);
+    }
+
+    function drawCurve(ctx, space, fn, color, width = 3, dashed = false, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dashed ? [8, 7] : []);
+      ctx.beginPath();
+      for (let i = 0; i <= 560; i++) {
+        const x = space.xmin + (space.xmax - space.xmin) * i / 560;
+        const y = fn(x);
+        const cx = space.toX(x);
+        const cy = space.toY(y);
+        if (i === 0) ctx.moveTo(cx, cy);
+        else ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawInverseCurve(ctx, space, a, color, width = 3, dashed = false, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dashed ? [8, 7] : []);
+      [[space.xmin, -0.12], [0.12, space.xmax]].forEach(([from, to]) => {
+        ctx.beginPath();
+        for (let i = 0; i <= 300; i++) {
+          const x = from + (to - from) * i / 300;
+          const y = a / x;
+          const cx = space.toX(x);
+          const cy = space.toY(y);
+          if (i === 0) ctx.moveTo(cx, cy);
+          else ctx.lineTo(cx, cy);
+        }
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawPoint(ctx, space, point, color, label = "", radius = 7) {
+      const x = space.toX(point.x);
+      const y = space.toY(point.y);
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      if (label) {
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "800 13px Segoe UI, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(label, x + 10, y - 12);
+      }
+      ctx.restore();
+    }
+
+    function drawGuideLine(ctx, space, x, label) {
+      ctx.save();
+      ctx.strokeStyle = "#b45309";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      ctx.moveTo(space.toX(x), space.toY(space.ymin));
+      ctx.lineTo(space.toX(x), space.toY(space.ymax));
+      ctx.stroke();
+      ctx.fillStyle = "#92400e";
+      ctx.font = "900 14px Segoe UI, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(label, space.toX(x) + 8, space.toY(space.ymax) + 18);
+      ctx.restore();
+    }
+
+    function drawStudentLinear(ctx, space, alpha = 1) {
+      const targets = linearTargets();
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      drawCurve(ctx, space, x => 2 * x + state.linear.b, "#059669", 4);
+      targets.forEach((point, idx) => {
+        if (state.linear.plotted.has(idx)) drawPoint(ctx, space, point, "#059669", `(${formatNumber(point.x)}, ${formatNumber(point.y)})`);
+      });
+      ctx.restore();
+    }
+
+    function drawStudentDirect(ctx, space, alpha = 1) {
+      const targets = directTargets();
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      drawCurve(ctx, space, x => state.direct.a * x, "#059669", 4);
+      targets.forEach((point, idx) => {
+        if (state.direct.plotted.has(idx)) drawPoint(ctx, space, point, "#059669", `(${formatNumber(point.x)}, ${formatNumber(point.y)})`);
+      });
+      ctx.restore();
+    }
+
+    function drawStudentInverse(ctx, space, alpha = 1) {
+      const targets = inverseTargets();
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      drawInverseCurve(ctx, space, state.inverse.a, "#dc2626", 4);
+      targets.forEach((point, idx) => {
+        if (state.inverse.plotted.has(idx)) drawPoint(ctx, space, point, "#dc2626", `(${formatNumber(point.x)}, ${formatNumber(point.y)})`);
+      });
+      ctx.restore();
+    }
+
+    function drawStudentQuadratic(ctx, space, alpha = 1) {
+      const { h, k } = state.quadratic;
+      const targets = quadraticTargets();
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      drawCurve(ctx, space, x => (x - h) ** 2 + k, "#dc2626", 4);
+      drawGuideLine(ctx, space, h, `축: x = ${formatNumber(h)}`);
+      targets.forEach((point, idx) => {
+        if (state.quadratic.plotted.has(idx)) drawPoint(ctx, space, point, "#dc2626", idx === 2 ? `꼭짓점 (${formatNumber(h)}, ${formatNumber(k)})` : "");
+      });
+      ctx.restore();
+    }
+
+    function drawDirect() {
+      const { ctx, width, height } = setupCanvas(el.directCanvas);
+      const space = makeSpace(width, height);
+      const s = state.direct;
+      drawGrid(ctx, space, width, height);
+
+      if (!s.missionDone) {
+        directTargets().forEach((point, idx) => {
+          if (s.plotted.has(idx)) drawPoint(ctx, space, point, "#2563eb", `(${formatNumber(point.x)}, ${formatNumber(point.y)})`);
+        });
+        return;
+      }
+
+      drawStudentDirect(ctx, space, s.progress > 0 && s.progress < 1 ? .28 : 1);
+      if (s.progress > 0 && s.progress < 1) {
+        const a = 1 + (s.a - 1) * s.progress;
+        drawCurve(ctx, space, x => x, "#94a3b8", 3, true);
+        drawCurve(ctx, space, x => a * x, "#2563eb", 4);
+        directXsForA(s.a).forEach(x => drawPoint(ctx, space, { x, y: a * x }, "#2563eb"));
+        drawMovingLabel(ctx, space, `변화 중: y = ${formatNumber(niceNumber(a))}x`);
+      } else if (s.progress === 1) {
+        drawCurve(ctx, space, x => x, "#94a3b8", 3, true, .65);
+        drawMovingLabel(ctx, space, `완성: ${directEquationText()}`, "#065f46");
+      } else {
+        drawMovingLabel(ctx, space, "학생이 그린 정비례 그래프가 먼저 완성되었습니다.", "#065f46");
+      }
+    }
+
+    function drawInverse() {
+      const { ctx, width, height } = setupCanvas(el.inverseCanvas);
+      const space = makeSpace(width, height);
+      const s = state.inverse;
+      drawGrid(ctx, space, width, height);
+
+      if (!s.missionDone) {
+        inverseTargets().forEach((point, idx) => {
+          if (s.plotted.has(idx)) drawPoint(ctx, space, point, "#dc2626", `(${formatNumber(point.x)}, ${formatNumber(point.y)})`);
+        });
+        return;
+      }
+
+      drawStudentInverse(ctx, space, s.progress > 0 && s.progress < 1 ? .28 : 1);
+      if (s.progress > 0 && s.progress < 1) {
+        const a = 1 + (s.a - 1) * s.progress;
+        drawInverseCurve(ctx, space, 1, "#94a3b8", 3, true);
+        drawInverseCurve(ctx, space, a, "#2563eb", 4);
+        inverseTargets().forEach(point => drawPoint(ctx, space, { x: point.x, y: a / point.x }, "#2563eb"));
+        drawMovingLabel(ctx, space, `변화 중: y = ${formatNumber(niceNumber(a))}/x`);
+      } else if (s.progress === 1) {
+        drawInverseCurve(ctx, space, 1, "#94a3b8", 3, true, .65);
+        drawMovingLabel(ctx, space, `완성: ${inverseEquationText()}`, "#7f1d1d");
+      } else {
+        drawMovingLabel(ctx, space, "학생이 그린 반비례 그래프가 먼저 완성되었습니다.", "#7f1d1d");
+      }
+    }
+
+    function drawLinear() {
+      const { ctx, width, height } = setupCanvas(el.linearCanvas);
+      const space = makeSpace(width, height);
+      const s = state.linear;
+      drawGrid(ctx, space, width, height);
+
+      if (!s.missionDone) {
+        linearTargets().forEach((point, idx) => {
+          if (s.plotted.has(idx)) drawPoint(ctx, space, point, "#2563eb", `(${formatNumber(point.x)}, ${formatNumber(point.y)})`);
+        });
+        return;
+      }
+
+      drawStudentLinear(ctx, space, s.progress > 0 && s.progress < 1 ? .28 : 1);
+
+      if (s.progress > 0 && s.progress < 1) {
+        const offset = s.b * s.progress;
+        drawCurve(ctx, space, x => 2 * x, "#94a3b8", 3, true);
+        drawCurve(ctx, space, x => 2 * x + offset, "#2563eb", 4);
+        linearXs.forEach(x => drawPoint(ctx, space, { x, y: 2 * x + offset }, "#2563eb"));
+        drawMovingLabel(ctx, space, `이동 중: y = 2x ${signedSpaced(offset)}`);
+      } else if (s.progress === 1) {
+        drawCurve(ctx, space, x => 2 * x, "#94a3b8", 3, true, .65);
+        drawMovingLabel(ctx, space, `완성: ${linearEquationText()}`, "#065f46");
+      } else {
+        drawMovingLabel(ctx, space, "학생이 그린 그래프가 먼저 완성되었습니다.", "#065f46");
+      }
+    }
+
+    function drawQuadratic() {
+      const { ctx, width, height } = setupCanvas(el.quadraticCanvas);
+      const space = makeSpace(width, height);
+      const s = state.quadratic;
+      drawGrid(ctx, space, width, height);
+
+      if (!s.missionDone) {
+        quadraticTargets().forEach((point, idx) => {
+          if (s.plotted.has(idx)) {
+            const label = idx === 2 ? `꼭짓점 (${formatNumber(s.h)}, ${formatNumber(s.k)})` : `(${formatNumber(point.x)}, ${formatNumber(point.y)})`;
+            drawPoint(ctx, space, point, "#dc2626", label);
+          }
+        });
+        return;
+      }
+
+      drawStudentQuadratic(ctx, space, s.stepX > 0 || s.stepY > 0 ? .26 : 1);
+
+      if (s.stepX > 0 || s.stepY > 0) {
+        const h = s.h * s.stepX;
+        const k = s.k * s.stepY;
+        drawCurve(ctx, space, x => x * x, "#94a3b8", 3, true);
+        drawCurve(ctx, space, x => (x - h) ** 2 + k, s.stepX === 1 && s.stepY === 1 ? "#dc2626" : "#2563eb", 4);
+        drawGuideLine(ctx, space, h, `축: x = ${formatNumber(h)}`);
+        drawPoint(ctx, space, { x: h, y: k }, "#b45309", `꼭짓점 (${formatNumber(h)}, ${formatNumber(k)})`);
+        quadraticDeltas.forEach(dx => drawPoint(ctx, space, { x: h + dx, y: dx * dx + k }, "#2563eb", "", 6));
+        drawMovingLabel(ctx, space, `꼭짓점: (${formatNumber(h)}, ${formatNumber(k)})`, "#92400e");
+      } else {
+        drawMovingLabel(ctx, space, "학생이 그린 포물선이 먼저 완성되었습니다.", "#7f1d1d");
+      }
+    }
+
+    function drawMovingLabel(ctx, space, text, color = "#1d4ed8") {
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.font = "900 17px Segoe UI, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(text, space.toX(-5.7), space.toY(10.1));
+      ctx.restore();
+    }
+
+    function refreshTargetList(kind) {
+      const s = state[kind];
+      const boxes = {
+        direct: el.directTargets,
+        inverse: el.inverseTargets,
+        linear: el.linearTargets,
+        quadratic: el.quadraticTargets
+      };
+      const targetFns = {
+        direct: directTargets,
+        inverse: inverseTargets,
+        linear: linearTargets,
+        quadratic: quadraticTargets
+      };
+      const box = boxes[kind];
+      const targets = targetFns[kind]();
+      box.innerHTML = "";
+      targets.forEach((point, idx) => {
+        const item = document.createElement("div");
+        item.className = `target ${s.plotted.has(idx) ? "done" : ""}`;
+        item.textContent = s.plotted.has(idx) ? "완료" : `x=${formatNumber(point.x)}`;
+        box.appendChild(item);
+      });
+    }
+
+    function targetCount(kind) {
+      return {
+        direct: directTargets,
+        inverse: inverseTargets,
+        linear: linearTargets,
+        quadratic: quadraticTargets
+      }[kind]().length;
+    }
+
+    function refreshDirectUi() {
+      const s = state.direct;
+      el.directBadge.textContent = `${s.plotted.size} / ${targetCount("direct")}`;
+      el.directAnimate.disabled = !s.missionDone || s.animating;
+      el.directEquation.textContent = directEquationText();
+      el.directA.value = formatNumber(s.a);
+      refreshTargetList("direct");
+      if (s.missionDone) {
+        const a = niceNumber(1 + (s.a - 1) * s.progress);
+        el.directReadout.innerHTML = `<span>${s.progress === 0 ? "학생 정비례 그래프 완성!" : `현재 상수 a: ${formatNumber(a)}`}</span><small>기본형 y = x에서 상수 a가 ${formatNumber(s.a)}로 변합니다. 음수이면 원점을 지나며 기울기 방향이 반대로 바뀝니다.</small>`;
+      } else {
+        el.directReadout.innerHTML = `<span>${s.message}</span><small>정비례 상수는 -5/4, 1/3처럼 분자 절대값 5 이하, 분모 1~4인 값만 씁니다. x값은 y가 정수가 되도록 자동 선택됩니다.</small>`;
+      }
+      drawDirect();
+    }
+
+    function refreshInverseUi() {
+      const s = state.inverse;
+      el.inverseBadge.textContent = `${s.plotted.size} / ${targetCount("inverse")}`;
+      el.inverseAnimate.disabled = !s.missionDone || s.animating;
+      el.inverseEquation.textContent = inverseEquationText();
+      el.inverseA.value = formatNumber(s.a);
+      el.inverseSide.textContent = s.side === "positive" ? "음수 x 보기" : "양수 x 보기";
+      refreshTargetList("inverse");
+      if (s.missionDone) {
+        const a = niceNumber(1 + (s.a - 1) * s.progress);
+        el.inverseReadout.innerHTML = `<span>${s.progress === 0 ? "학생 반비례 그래프 완성!" : `현재 상수 a: ${formatNumber(a)}`}</span><small>${s.side === "positive" ? "양수 x쪽" : "음수 x쪽"} 가지를 먼저 확인한 뒤, 전체 반비례 그래프 모양을 관찰합니다.</small>`;
+      } else {
+        el.inverseReadout.innerHTML = `<span>${s.message}</span><small>지금은 ${s.side === "positive" ? "양수 x값" : "음수 x값"}만 찍습니다. 반비례 상수는 ±1, ±2, ±3, ±4, ±6, ±8, ±12 중에서 사용합니다.</small>`;
+      }
+      drawInverse();
+    }
+
+    function refreshLinearUi() {
+      const s = state.linear;
+      el.linearBadge.textContent = `${s.plotted.size} / ${targetCount("linear")}`;
+      el.linearAnimate.disabled = !s.missionDone || s.animating;
+      el.linearEquation.textContent = linearEquationText();
+      el.linearB.value = formatNumber(s.b);
+      refreshTargetList("linear");
+      const move = niceNumber(s.b * s.progress);
+      if (s.missionDone) {
+        el.linearReadout.innerHTML = `<span>${s.progress === 0 ? "학생 그래프 완성!" : `현재 이동량: ${signed(move)}`}</span><small>이제 기본형 y = 2x가 y축 방향으로 ${signed(state.linear.b)}만큼 이동해 같은 그래프가 됩니다.</small>`;
+      } else {
+        el.linearReadout.innerHTML = `<span>${s.message}</span><small>점 좌표가 정수로 나오도록 일차함수의 상수 b는 정수만 사용합니다.</small>`;
+      }
+      drawLinear();
+    }
+
+    function refreshQuadraticUi() {
+      const s = state.quadratic;
+      el.quadraticBadge.textContent = `${s.plotted.size} / ${targetCount("quadratic")}`;
+      el.quadraticAnimate.disabled = !s.missionDone || s.animating;
+      el.quadraticEquation.textContent = quadraticEquationText();
+      el.quadraticH.value = formatNumber(s.h);
+      el.quadraticK.value = formatNumber(s.k);
+      refreshTargetList("quadratic");
+      const vx = niceNumber(s.h * s.stepX);
+      const vy = niceNumber(s.k * s.stepY);
+      if (s.missionDone) {
+        el.quadraticReadout.innerHTML = `<span>${s.stepX === 0 && s.stepY === 0 ? "학생 포물선 완성!" : `꼭짓점: (${formatNumber(vx)}, ${formatNumber(vy)})`}</span><small>(0, 0) → (${formatNumber(s.h)}, 0) → (${formatNumber(s.h)}, ${formatNumber(s.k)}) 순서로 이동합니다.</small>`;
+      } else {
+        el.quadraticReadout.innerHTML = `<span>${s.message}</span><small>꼭짓점과 목표 점이 정수 좌표가 되도록 h, k는 정수만 사용합니다.</small>`;
+      }
+      drawQuadratic();
+    }
+
+    function refreshByKind(kind) {
+      if (kind === "direct") refreshDirectUi();
+      if (kind === "inverse") refreshInverseUi();
+      if (kind === "linear") refreshLinearUi();
+      if (kind === "quadratic") refreshQuadraticUi();
+    }
+
+    function nearestTarget(kind, clickPoint) {
+      const targets = {
+        direct: directTargets,
+        inverse: inverseTargets,
+        linear: linearTargets,
+        quadratic: quadraticTargets
+      }[kind]();
+      const s = state[kind];
+      let best = null;
+      targets.forEach((point, idx) => {
+        if (s.plotted.has(idx)) return;
+        const dist = Math.hypot(point.x - clickPoint.x, point.y - clickPoint.y);
+        if (!best || dist < best.dist) best = { idx, dist };
+      });
+      return best && best.dist <= tolerance ? best.idx : -1;
+    }
+
+    function handleCanvasClick(kind, event) {
+      const s = state[kind];
+      if (s.missionDone || s.animating) return;
+      const canvas = {
+        direct: el.directCanvas,
+        inverse: el.inverseCanvas,
+        linear: el.linearCanvas,
+        quadratic: el.quadraticCanvas
+      }[kind];
+      const clicked = pointerToGraph(canvas, event);
+      const idx = nearestTarget(kind, clicked);
+      if (idx >= 0) {
+        s.plotted.add(idx);
+        s.message = "좋아요. 점이 그래프 위에 고정되었습니다.";
+        if (s.plotted.size === targetCount(kind)) {
+          s.missionDone = true;
+          s.message = "미션 완료!";
+          if (kind === "linear" || kind === "direct" || kind === "inverse") s.progress = 0;
+          if (kind === "quadratic") {
+            s.stepX = 0;
+            s.stepY = 0;
+          }
+        }
+      } else {
+        s.message = "조금 빗나갔어요. 격자와 목표 식을 보고 다시 찍어보세요.";
+      }
+      refreshByKind(kind);
+    }
+
+    function animateValue(duration, onFrame, onDone) {
+      const started = performance.now();
+      function frame(now) {
+        const t = Math.min(1, (now - started) / duration);
+        const eased = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        onFrame(eased);
+        if (t < 1) requestAnimationFrame(frame);
+        else onDone?.();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function animateDirect() {
+      const s = state.direct;
+      s.animating = true;
+      s.progress = .001;
+      refreshDirectUi();
+      animateValue(1500, t => {
+        s.progress = Math.max(.001, t);
+        refreshDirectUi();
+      }, () => {
+        s.progress = 1;
+        s.animating = false;
+        refreshDirectUi();
+      });
+    }
+
+    function animateInverse() {
+      const s = state.inverse;
+      s.animating = true;
+      s.progress = .001;
+      refreshInverseUi();
+      animateValue(1500, t => {
+        s.progress = Math.max(.001, t);
+        refreshInverseUi();
+      }, () => {
+        s.progress = 1;
+        s.animating = false;
+        refreshInverseUi();
+      });
+    }
+
+    function animateLinear() {
+      const s = state.linear;
+      s.animating = true;
+      s.progress = .001;
+      refreshLinearUi();
+      animateValue(1500, t => {
+        s.progress = Math.max(.001, t);
+        refreshLinearUi();
+      }, () => {
+        s.progress = 1;
+        s.animating = false;
+        refreshLinearUi();
+      });
+    }
+
+    function animateQuadratic() {
+      const s = state.quadratic;
+      s.animating = true;
+      s.stepX = .001;
+      s.stepY = 0;
+      refreshQuadraticUi();
+      animateValue(1500, t => {
+        s.stepX = Math.max(.001, t);
+        s.stepY = 0;
+        refreshQuadraticUi();
+      }, () => {
+        s.stepX = 1;
+        animateValue(1500, t => {
+          s.stepY = Math.max(.001, t);
+          refreshQuadraticUi();
+        }, () => {
+          s.stepY = 1;
+          s.animating = false;
+          refreshQuadraticUi();
+        });
+      });
+    }
+
+    function reset(kind) {
+      const s = state[kind];
+      s.plotted.clear();
+      s.missionDone = false;
+      s.animating = false;
+      s.message = "목표 점 가까이를 클릭하세요.";
+      if (kind === "direct" || kind === "inverse" || kind === "linear") s.progress = 0;
+      if (kind === "quadratic") {
+        s.stepX = 0;
+        s.stepY = 0;
+      }
+      refreshByKind(kind);
+    }
+
+    function applyDirectConstant() {
+      const value = parseConstant(el.directA.value);
+      if (value === null || !isSmallNiceRational(value, false)) {
+        state.direct.message = "정비례 상수 a는 0이 아니고, 예를 들어 -5/4, 1/3처럼 분자 절대값 5 이하와 분모 1~4인 값만 가능합니다.";
+      } else {
+        state.direct.a = niceNumber(value);
+        reset("direct");
+        return;
+      }
+      refreshDirectUi();
+    }
+
+    function applyInverseConstant() {
+      const value = parseConstant(el.inverseA.value);
+      if (value === null || !isAllowedInverseConstant(value)) {
+        state.inverse.message = "반비례 상수 a는 ±1, ±2, ±3, ±4, ±6, ±8, ±12 중 하나만 입력하세요.";
+      } else {
+        state.inverse.a = niceNumber(value);
+        reset("inverse");
+        return;
+      }
+      refreshInverseUi();
+    }
+
+    function applyLinearConstant() {
+      const value = parseConstant(el.linearB.value);
+      if (value === null || !isIntegerInRange(value, true)) {
+        state.linear.message = "상수 b는 절대값 5 이하의 정수만 입력하세요. 그래야 목표 점이 정수 좌표로 나옵니다.";
+      } else {
+        state.linear.b = niceNumber(value);
+        reset("linear");
+        return;
+      }
+      refreshLinearUi();
+    }
+
+    function applyQuadraticConstants() {
+      const h = parseConstant(el.quadraticH.value);
+      const k = parseConstant(el.quadraticK.value);
+      if (h === null || k === null || !isIntegerInRange(h, true) || !isIntegerInRange(k, true)) {
+        state.quadratic.message = "h와 k는 절대값 5 이하의 정수만 입력하세요. 그래야 꼭짓점과 목표 점이 정수 좌표로 나옵니다.";
+      } else {
+        state.quadratic.h = niceNumber(h);
+        state.quadratic.k = niceNumber(k);
+        reset("quadratic");
+        return;
+      }
+      refreshQuadraticUi();
+    }
+
+    function randomizeLinear() {
+      state.linear.b = randomIntegerConstant();
+      reset("linear");
+    }
+
+    function randomizeDirect() {
+      state.direct.a = randomDirectConstant();
+      reset("direct");
+    }
+
+    function randomizeInverse() {
+      state.inverse.a = randomInverseConstant();
+      reset("inverse");
+    }
+
+    function toggleInverseSide() {
+      state.inverse.side = state.inverse.side === "positive" ? "negative" : "positive";
+      reset("inverse");
+    }
+
+    function randomizeQuadratic() {
+      state.quadratic.h = randomIntegerConstant();
+      state.quadratic.k = randomIntegerConstant();
+      reset("quadratic");
+    }
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(item => item.setAttribute("aria-selected", String(item === tab)));
+        document.querySelectorAll(".stage").forEach(stage => stage.classList.toggle("active", stage.id === tab.dataset.tab));
+        drawDirect();
+        drawInverse();
+        drawLinear();
+        drawQuadratic();
+      });
+    });
+
+    el.directCanvas.addEventListener("click", event => handleCanvasClick("direct", event));
+    el.inverseCanvas.addEventListener("click", event => handleCanvasClick("inverse", event));
+    el.linearCanvas.addEventListener("click", event => handleCanvasClick("linear", event));
+    el.quadraticCanvas.addEventListener("click", event => handleCanvasClick("quadratic", event));
+    el.directAnimate.addEventListener("click", animateDirect);
+    el.inverseAnimate.addEventListener("click", animateInverse);
+    el.linearAnimate.addEventListener("click", animateLinear);
+    el.quadraticAnimate.addEventListener("click", animateQuadratic);
+    el.directRandom.addEventListener("click", randomizeDirect);
+    el.inverseRandom.addEventListener("click", randomizeInverse);
+    el.inverseSide.addEventListener("click", toggleInverseSide);
+    el.linearRandom.addEventListener("click", randomizeLinear);
+    el.quadraticRandom.addEventListener("click", randomizeQuadratic);
+    el.directReset.addEventListener("click", () => reset("direct"));
+    el.inverseReset.addEventListener("click", () => reset("inverse"));
+    el.linearReset.addEventListener("click", () => reset("linear"));
+    el.quadraticReset.addEventListener("click", () => reset("quadratic"));
+    el.directA.addEventListener("change", applyDirectConstant);
+    el.directA.addEventListener("keydown", event => {
+      if (event.key === "Enter") applyDirectConstant();
+    });
+    el.inverseA.addEventListener("change", applyInverseConstant);
+    el.inverseA.addEventListener("keydown", event => {
+      if (event.key === "Enter") applyInverseConstant();
+    });
+    el.linearB.addEventListener("change", applyLinearConstant);
+    el.linearB.addEventListener("keydown", event => {
+      if (event.key === "Enter") applyLinearConstant();
+    });
+    [el.quadraticH, el.quadraticK].forEach(input => {
+      input.addEventListener("change", applyQuadraticConstants);
+      input.addEventListener("keydown", event => {
+        if (event.key === "Enter") applyQuadraticConstants();
+      });
+    });
+
+    window.addEventListener("resize", () => {
+      drawDirect();
+      drawInverse();
+      drawLinear();
+      drawQuadratic();
+    });
+
+    refreshDirectUi();
+    refreshInverseUi();
+    refreshLinearUi();
+    refreshQuadraticUi();
+  </script>
+</body>
+</html>
