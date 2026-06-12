@@ -421,9 +421,13 @@
         </div>
         <div class="constant-box">
           <div class="constant-row">
+            <label for="quadraticA">상수 a</label>
+            <input id="quadraticA" type="text" value="1" inputmode="text" aria-label="이차함수 상수 a">
+            <button class="ghost" id="quadraticRandom">랜덤</button>
+          </div>
+          <div class="constant-row">
             <label for="quadraticH">상수 p</label>
             <input id="quadraticH" type="text" value="2" inputmode="text" aria-label="이차함수 x축 이동 p">
-            <button class="ghost" id="quadraticRandom">랜덤</button>
           </div>
           <div class="constant-row">
             <label for="quadraticK">상수 q</label>
@@ -469,6 +473,7 @@
         message: defaultMessage
       },
       quadratic: {
+        a: 1,
         h: 2,
         k: 1,
         plotted: new Set(),
@@ -510,6 +515,7 @@
       inverseA: document.getElementById("inverseA"),
       linearA: document.getElementById("linearA"),
       linearB: document.getElementById("linearB"),
+      quadraticA: document.getElementById("quadraticA"),
       quadraticH: document.getElementById("quadraticH"),
       quadraticK: document.getElementById("quadraticK"),
       directEquation: document.getElementById("directEquation"),
@@ -647,10 +653,12 @@
     }
 
     function quadraticEquationText() {
-      const { h, k } = state.quadratic;
+      const { a, h, k } = state.quadratic;
       const inside = h === 0 ? "x" : `x ${signedSpaced(-h)}`;
       const outside = k === 0 ? "" : ` ${signedSpaced(k)}`;
-      return `y = (${inside})²${outside}`;
+      const body = `(${inside})²`;
+      const leading = a === 1 ? body : a === -1 ? `-${body}` : `${formatNumber(a)}${body}`;
+      return `y = ${leading}${outside}`;
     }
 
     function linearTargets() {
@@ -687,11 +695,15 @@
     }
 
     function quadraticTargets() {
-      const { h, k } = state.quadratic;
-      return quadraticDeltas.map(dx => {
+      const { a, h, k } = state.quadratic;
+      const candidates = [];
+      for (let dx = -8; dx <= 8; dx++) {
         const x = niceNumber(h + dx);
-        return { x, y: niceNumber(dx * dx + k) };
-      });
+        const y = niceNumber(a * dx * dx + k);
+        if (x >= -8 && x <= 8 && y >= -12 && y <= 12) candidates.push({ x, y, dx });
+      }
+      candidates.sort((left, right) => Math.abs(left.dx) - Math.abs(right.dx) || left.dx - right.dx);
+      return candidates.slice(0, 5).sort((left, right) => left.x - right.x);
     }
 
     function setupCanvas(canvas) {
@@ -881,14 +893,15 @@
     }
 
     function drawStudentQuadratic(ctx, space, alpha = 1) {
-      const { h, k } = state.quadratic;
+      const { a, h, k } = state.quadratic;
       const targets = quadraticTargets();
       ctx.save();
       ctx.globalAlpha = alpha;
-      drawCurve(ctx, space, x => (x - h) ** 2 + k, "#dc2626", 4);
+      drawCurve(ctx, space, x => a * (x - h) ** 2 + k, "#dc2626", 4);
       drawGuideLine(ctx, space, h, `축: x = ${formatNumber(h)}`);
       targets.forEach((point, idx) => {
-        if (state.quadratic.plotted.has(idx)) drawPoint(ctx, space, point, "#dc2626", idx === 2 ? `꼭짓점 (${formatNumber(h)}, ${formatNumber(k)})` : "");
+        const isVertex = point.x === h && point.y === k;
+        if (state.quadratic.plotted.has(idx)) drawPoint(ctx, space, point, "#dc2626", isVertex ? `꼭짓점 (${formatNumber(h)}, ${formatNumber(k)})` : "");
       });
       ctx.restore();
     }
@@ -987,7 +1000,7 @@
       if (!s.missionDone) {
         quadraticTargets().forEach((point, idx) => {
           if (s.plotted.has(idx)) {
-            const label = idx === 2 ? `꼭짓점 (${formatNumber(s.h)}, ${formatNumber(s.k)})` : `(${formatNumber(point.x)}, ${formatNumber(point.y)})`;
+            const label = point.x === s.h && point.y === s.k ? `꼭짓점 (${formatNumber(s.h)}, ${formatNumber(s.k)})` : `(${formatNumber(point.x)}, ${formatNumber(point.y)})`;
             drawPoint(ctx, space, point, "#dc2626", label);
           }
         });
@@ -999,11 +1012,14 @@
       if (s.stepX > 0 || s.stepY > 0) {
         const h = s.h * s.stepX;
         const k = s.k * s.stepY;
-        drawCurve(ctx, space, x => x * x, "#94a3b8", 3, true);
-        drawCurve(ctx, space, x => (x - h) ** 2 + k, s.stepX === 1 && s.stepY === 1 ? "#dc2626" : "#2563eb", 4);
+        drawCurve(ctx, space, x => s.a * x * x, "#94a3b8", 3, true);
+        drawCurve(ctx, space, x => s.a * (x - h) ** 2 + k, s.stepX === 1 && s.stepY === 1 ? "#dc2626" : "#2563eb", 4);
         drawGuideLine(ctx, space, h, `축: x = ${formatNumber(h)}`);
         drawPoint(ctx, space, { x: h, y: k }, "#b45309", `꼭짓점 (${formatNumber(h)}, ${formatNumber(k)})`);
-        quadraticDeltas.forEach(dx => drawPoint(ctx, space, { x: h + dx, y: dx * dx + k }, "#2563eb", "", 6));
+        quadraticTargets().forEach(point => {
+          const dx = point.x - s.h;
+          drawPoint(ctx, space, { x: h + dx, y: s.a * dx * dx + k }, "#2563eb", "", 6);
+        });
         drawMovingLabel(ctx, space, `꼭짓점: (${formatNumber(h)}, ${formatNumber(k)})`, "#92400e");
       } else {
         drawMovingLabel(ctx, space, "학생이 그린 포물선이 먼저 완성되었습니다.", "#7f1d1d");
@@ -1108,13 +1124,14 @@
       el.quadraticBadge.textContent = `${s.plotted.size} / ${targetCount("quadratic")}`;
       el.quadraticAnimate.disabled = !s.missionDone || s.animating;
       el.quadraticEquation.textContent = quadraticEquationText();
+      el.quadraticA.value = formatNumber(s.a);
       el.quadraticH.value = formatNumber(s.h);
       el.quadraticK.value = formatNumber(s.k);
       refreshTargetList("quadratic");
       const vx = niceNumber(s.h * s.stepX);
       const vy = niceNumber(s.k * s.stepY);
       if (s.missionDone) {
-        el.quadraticReadout.innerHTML = `<span>${s.stepX === 0 && s.stepY === 0 ? "학생 포물선 완성!" : `꼭짓점: (${formatNumber(vx)}, ${formatNumber(vy)})`}</span><small>(0, 0) → (${formatNumber(s.h)}, 0) → (${formatNumber(s.h)}, ${formatNumber(s.k)}) 순서로 이동합니다.</small>`;
+        el.quadraticReadout.innerHTML = `<span>${s.stepX === 0 && s.stepY === 0 ? "학생 포물선 완성!" : `꼭짓점: (${formatNumber(vx)}, ${formatNumber(vy)})`}</span><small>기본형 y = ax²가 (${formatNumber(s.h)}, ${formatNumber(s.k)})로 평행이동합니다.</small>`;
       } else {
         el.quadraticReadout.innerHTML = `<span>${s.message}</span><small></small>`;
       }
@@ -1316,13 +1333,24 @@
     }
 
     function applyQuadraticConstants() {
+      const a = parseConstant(el.quadraticA.value);
       const h = parseConstant(el.quadraticH.value);
       const k = parseConstant(el.quadraticK.value);
-      if (h === null || k === null || !isIntegerInRange(h, true) || !Number.isInteger(niceNumber(k)) || Math.abs(niceNumber(k)) > 4) {
-        state.quadratic.message = "p는 -5부터 5까지, q는 -4부터 4까지의 정수로 입력하세요.";
+      const old = { a: state.quadratic.a, h: state.quadratic.h, k: state.quadratic.k };
+      if (a === null || h === null || k === null || !Number.isInteger(niceNumber(a)) || niceNumber(a) === 0 || Math.abs(niceNumber(a)) > 3 || !isIntegerInRange(h, true) || !Number.isInteger(niceNumber(k)) || Math.abs(niceNumber(k)) > 4) {
+        state.quadratic.message = "a는 -3부터 3까지의 0이 아닌 정수, p는 -5부터 5까지, q는 -4부터 4까지의 정수로 입력하세요.";
       } else {
+        state.quadratic.a = niceNumber(a);
         state.quadratic.h = niceNumber(h);
         state.quadratic.k = niceNumber(k);
+        if (quadraticTargets().length < 5) {
+          state.quadratic.a = old.a;
+          state.quadratic.h = old.h;
+          state.quadratic.k = old.k;
+          state.quadratic.message = "현재 눈금 안에서 찍을 수 있는 정수 좌표가 부족합니다. a 또는 q를 조금 줄여주세요.";
+          refreshQuadraticUi();
+          return;
+        }
         reset("quadratic");
         return;
       }
@@ -1351,8 +1379,11 @@
     }
 
     function randomizeQuadratic() {
-      state.quadratic.h = randomIntegerConstant();
-      state.quadratic.k = Math.floor(Math.random() * 9) - 4;
+      do {
+        state.quadratic.a = [-3, -2, -1, 1, 2, 3][Math.floor(Math.random() * 6)];
+        state.quadratic.h = randomIntegerConstant();
+        state.quadratic.k = Math.floor(Math.random() * 9) - 4;
+      } while (quadraticTargets().length < 5);
       reset("quadratic");
     }
 
@@ -1398,7 +1429,7 @@
         if (event.key === "Enter") applyLinearConstant();
       });
     });
-    [el.quadraticH, el.quadraticK].forEach(input => {
+    [el.quadraticA, el.quadraticH, el.quadraticK].forEach(input => {
       input.addEventListener("change", applyQuadraticConstants);
       input.addEventListener("keydown", event => {
         if (event.key === "Enter") applyQuadraticConstants();
